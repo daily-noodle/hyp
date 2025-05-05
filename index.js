@@ -18,6 +18,7 @@ const group = new Array(pInit).fill(qInit)
 const glOptions = new Map()
 glOptions.set("g", group)
 glOptions.set("mode", 0)
+glOptions.set("render", true)
 
 const canvas = document.createElement('canvas')
 const gl = canvas.getContext('webgl')
@@ -63,9 +64,9 @@ function computeEdges() {
     .catch(console.log)
 }
 
-function computeResolution() {
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
+function computeResolution(width, height) {
+    canvas.width = width
+    canvas.height = height
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
     gl.uniform3f(glOptions.get("f_resolution"), gl.canvas.width, gl.canvas.height, 1)
 }
@@ -88,7 +89,7 @@ function computeIterationCount(iter) {
 
 //window events
 window.onresize = () => {
-    computeResolution()
+    computeResolution(innerWidth, innerHeight)
 }
 
 //UI
@@ -96,6 +97,9 @@ const uDiv = document.createElement('div')
 uDiv.style.position = 'absolute'
 uDiv.style.top = "20px"
 uDiv.style.left = "20px"
+uDiv.style.display = "flex"
+uDiv.style.maxWidth = "300px"
+uDiv.style.flexWrap = "wrap"
 const gInput = document.createElement('input')
 gInput.type = 'text'
 gInput.value = group.join(',')
@@ -128,6 +132,26 @@ cSelect.addEventListener('change', (evt) => {
 cSelect.selectedIndex = 0
 glOptions.set("mode", cSelect[0].value)
 uDiv.appendChild(cSelect)
+const pButton = document.createElement('button')
+pButton.innerText = "Download"
+pButton.addEventListener('click', () => {
+    glOptions.set("render", false)
+    const str = prompt("Image Dimensions (in Pixels)")
+    const dim = parseInt(str)
+    if(str != null && !isNaN(dim) && dim > 0) {
+        computeResolution(dim, dim)
+        gl.drawArrays(gl.TRIANGLES, 0, 6)
+        const data = canvas.toDataURL("image/png", 1)
+        const a = document.createElement('a')
+        a.download = `Hyperbolic_Tiling_${gInput.value}.png`
+        a.href = data
+        a.click()
+    }
+    glOptions.set("render", true)
+    computeResolution(innerWidth, innerHeight)
+    requestAnimationFrame(render)
+})
+uDiv.appendChild(pButton)
 const iRange = document.createElement('input')
 iRange.type = 'range'
 iRange.min = 1
@@ -164,6 +188,16 @@ function createProgram(gl, vertexShader, fragmentShader) {
     return program
 }
 
+function render(time) {
+    computeTime(time)
+    if(glOptions.get("mode") == colorModes['Camera']) {
+        computeCameraTexture()
+    }
+    gl.drawArrays(gl.TRIANGLES, 0, 6)
+    if(glOptions.get("render")) {
+        requestAnimationFrame(render)
+    }
+}
 
 //main
 (async () => {
@@ -195,16 +229,8 @@ function createProgram(gl, vertexShader, fragmentShader) {
     gl.uniform1i(gl.getUniformLocation(program, "f_cam"), 0)
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    computeResolution()
+    computeResolution(innerWidth, innerHeight)
     computeEdges()
     computeIterationCount(1)
-    function render(time) {
-        computeTime(time)
-        if(glOptions.get("mode") == colorModes['Camera']) {
-            computeCameraTexture()
-        }
-        gl.drawArrays(gl.TRIANGLES, 0, 6)
-        requestAnimationFrame(render)
-    }
     requestAnimationFrame(render)
 })()
