@@ -132,7 +132,7 @@ void main()
 {
     vec2 uv = (2.0*gl_FragCoord.xy-f_resolution.xy)/min(f_resolution.x, f_resolution.y);
     if(length(uv)>=1.0) {
-        gl_FragColor = vec4(vec3(0.5),1.0);
+        gl_FragColor = vec4(0);
         return;
     } 
     uv = translate(uv,f_origin);
